@@ -17,8 +17,8 @@ namespace Day_1_Part_2
             var i = 0;
             var rounds = 1;
             var sum = 0;
-            var prevSums = new List<int>();
-            while(!prevSums.Contains(sum))
+            var prevSums = new HashSet<int>();
+            while (!prevSums.Contains(sum))
             {
                 prevSums.Add(sum);
                 if (i == input.Count)
