@@ -1,24 +1,15 @@
 ﻿open System
 open AdventOfCode
 
-let explodeString (s:string) =
-        [for c in s -> c]
-
-
-let implodeString(xs: char list) =
-    let sb = System.Text.StringBuilder xs.Length
-    xs |> List.iter (sb.Append >> ignore)
-    sb.ToString()
-
 let rec getNumbers (nstr: char list, numbers: int list, str: char list) =
     match str with
-    | [] -> List.append numbers (List.singleton(nstr |> implodeString |> int))
+    | [] -> List.append numbers (List.singleton(nstr |> Util.implodeString |> int))
     | head::tail ->
         if "1234567890".Contains head then
             let nnstr = List.append nstr (List.singleton head)
             getNumbers(nnstr, numbers, tail)
         else if not (List.isEmpty nstr) then
-            let nnumbers = List.append numbers (List.singleton(nstr |> implodeString |> int))
+            let nnumbers = List.append numbers (List.singleton(nstr |> Util.implodeString |> int))
             getNumbers(List.empty, nnumbers, tail)
         else
             getNumbers(nstr, numbers, tail)
@@ -59,7 +50,7 @@ let part2 input =
 let main argv =
     let input =
         Util.readLines( __SOURCE_DIRECTORY__ + "\\input")
-        |> Seq.map (fun str -> getNumbers(List.empty, List.empty, str |> explodeString))
+        |> Seq.map (fun str -> getNumbers(List.empty, List.empty, str |> Util.explodeString))
     input
     |> part1
 
