@@ -34,6 +34,42 @@ let part1 initialSteps input =
     |> List.ofSeq
     |> (printfn "%s" << Util.implodeString)
 
+let rec part2 (time: int) (queue: (char * int) list)  (doneSteps: char list) (input: (char * (char seq)) list) =
+    printfn "Time %i" time
+    let progressQueue = List.map (fun q -> (fst q, (snd q) - 1)) queue
+    let finishedSteps = List.filter (fun q -> (snd q) = 0) progressQueue
+    let ongoingQueue = List.filter (fun q -> not (List.contains q finishedSteps)) progressQueue
+    let availableQueue = 5 - (List.length ongoingQueue)
+
+    let newDoneSteps = List.append doneSteps (List.map (fun q -> fst q) finishedSteps)
+
+    let availableSteps =
+        input
+        |> List.filter (fun r -> List.length (List.except newDoneSteps (List.ofSeq (snd r))) = 0)
+        |> List.map (fun a -> (fst a, 60 + (int (fst a) - 64)))
+
+    let takeSteps =
+        if List.length availableSteps > availableQueue then
+            availableQueue
+        else
+            List.length availableSteps
+
+    let newJobs = List.take takeSteps availableSteps
+    let newInput = List.filter (fun i -> not (List.contains (fst i) (List.map (fun j -> fst j) newJobs))) input
+
+    let newQueue = List.append ongoingQueue newJobs
+
+    printfn "Queue %A" newQueue
+    printfn "Done steps %A" newDoneSteps
+    printfn "Input %A" newInput
+    printfn "-------------"
+
+    if List.isEmpty newQueue then
+        time
+    else
+        part2 (time + 1) newQueue newDoneSteps newInput
+
+
 [<EntryPoint>]
 let main argv =
     let input =
@@ -49,6 +85,12 @@ let main argv =
     let requirements = Seq.concat (Seq.map snd input)
     let initialSteps = Seq.except steps requirements
 
-    part1 initialSteps input
+    // part1 initialSteps input
+
+    let initialQueue = Seq.map (fun s -> (s, 60 + (int s - 64))) initialSteps |> List.ofSeq
+
+    // compensate for inital queue processing
+    part2 1 initialQueue List.empty (List.ofSeq input)
+    |> printfn "Took time %i"
 
     0 // return an integer exit code
