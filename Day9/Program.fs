@@ -1,5 +1,20 @@
 ﻿open System
 open AdventOfCode
+open System.IO
+
+type Node(v: int64, p: Node option, n: Node option) =
+    let mutable prev = p
+    let mutable next = n
+
+    member this.Value = v
+
+    member this.Prev
+        with get() = prev
+        and set(p) = prev <- p
+
+    member this.Next
+        with get() = next
+        and set(n) = next <- n
 
 let rec getNumbers (nstr: char list) (numbers: int list) (str: char list) =
     match str with
@@ -14,17 +29,30 @@ let rec getNumbers (nstr: char list) (numbers: int list) (str: char list) =
         else
             getNumbers nstr numbers tail
 
-let insertAt e i l =
-    let first, second = List.splitAt i l
-    List.append (List.append first (List.singleton e)) second
+let insertNode newValue (after: byref<Node>) =
+    let node = Node(newValue, Some after, after.Next)
+    after.Next <- Some node
+    node.Next.Value.Prev <- Some node
+    node
 
-let removeAt i l =
-    let first, second = List.splitAt i l
-    (List.head second, List.concat [first; List.tail second])
+let removeNode (n: Node) =
+    let mutable prev = n.Prev.Value
+    let mutable next = n.Next.Value
 
-let rec runGame players currentPlayer currentMarble points playedMarbles remainingMarbles =
-    if List.length playedMarbles % 1000 = 0 then
-        printfn "%i played" (List.length playedMarbles)
+    prev.Next <- Some next
+    next.Prev <- Some prev
+
+    n.Value
+
+let rec traverse i (n: Node) =
+    if i < 0 then
+        traverse (i+1) n.Prev.Value
+    else if i > 0 then
+        traverse (i-1) n.Next.Value
+    else
+        n
+
+let rec runGame (stopWatch: System.Diagnostics.Stopwatch) players currentPlayer currentMarble (points: int64 array) (remainingMarbles: int64 list) =
     let ncurrentPlayer =
         if (currentPlayer + 1) > players then
             1
@@ -33,18 +61,18 @@ let rec runGame players currentPlayer currentMarble points playedMarbles remaini
     match remainingMarbles with
     | [] -> points
     | head::tail ->
-        if (head % 23) = 0 then
-            let ncurrentMarble = (currentMarble + (List.length playedMarbles) - 7) % (List.length playedMarbles)
-            let mpoints, nplayedMarbles = removeAt ncurrentMarble playedMarbles
-            let ppoints, plist = removeAt currentPlayer points
-            let npoints = insertAt (ppoints + mpoints + head) currentPlayer plist
-            
-            runGame players ncurrentPlayer ncurrentMarble npoints nplayedMarbles tail
+        if (head % Convert.ToInt64 23) = Convert.ToInt64 0 then
+            let toRemove = traverse -7 currentMarble
+            let ncurrentMarble = toRemove.Next.Value
+            let mpoints = Convert.ToInt64 (removeNode toRemove)
+            let ppoints = points.[currentPlayer]
+            points.[currentPlayer] <- (ppoints + mpoints + head)
+            runGame stopWatch players ncurrentPlayer ncurrentMarble points tail
 
         else
-            let ncurrentMarble = (currentMarble + 1) % (List.length playedMarbles) + 1
-            let nplayedMarbles = insertAt head ncurrentMarble playedMarbles
-            runGame players ncurrentPlayer ncurrentMarble points nplayedMarbles tail
+            let mutable insertAfter = (traverse 1 currentMarble)
+            let ncurrentMarble = insertNode head &insertAfter
+            runGame stopWatch players ncurrentPlayer ncurrentMarble points tail
 
 [<EntryPoint>]
 let main argv =
@@ -54,16 +82,26 @@ let main argv =
         |> Seq.map (getNumbers List.empty List.empty)
         |> Seq.head
 
-    let marbles = [1 .. input.[1]]
-    let points = Array.zeroCreate (input.[0] + 1) |> List.ofArray
+    let marbles = [(int64)1 .. (int64)(input.[1])]
+    let points = Array.zeroCreate (input.[0] + 1)
+    let mutable startMarble = Node(Convert.ToInt64 0, None, None)
+    
+    startMarble.Prev <- Some startMarble
+    startMarble.Next <- Some startMarble
+
 
     let stopWatch = System.Diagnostics.Stopwatch.StartNew()
 
-    runGame input.[0] 1 0 points [0] marbles
-    |> List.max
-    |> printfn "%i"
+    let best =
+        runGame stopWatch input.[0] 1 startMarble points marbles
+        |> Array.max
+    
+    best |> printfn "%i"
+
+    use sw = new StreamWriter("output")
+    sw.WriteLine(best |> string)
 
     stopWatch.Stop()
-    printfn "%f" stopWatch.Elapsed.TotalMilliseconds
+    printfn "%f" stopWatch.Elapsed.TotalSeconds
 
     0 // return an integer exit code
