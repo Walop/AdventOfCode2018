@@ -1,15 +1,19 @@
 ﻿open System
 open AdventOfCode
 
-type Node = struct
-    val childcount: int
-    val metadatacount: int
-    val value: int
-    val childvalues: int list
+type Node =
+    struct
+        val childcount: int
+        val metadatacount: int
+        val value: int
+        val childvalues: int list
 
-    new (cc, m, v, c) =
-        {childcount = cc; metadatacount = m; value = v; childvalues = c}
-end
+        new(cc, m, v, c) =
+            { childcount = cc
+              metadatacount = m
+              value = v
+              childvalues = c }
+    end
 
 let getChildvalue i l =
     let idx = i - 1
@@ -20,21 +24,34 @@ let rec getMetadatas donenodes (openNodes: Node list) mode input =
         donenodes
     else
         let lastOpen = List.last openNodes
+
         if List.length lastOpen.childvalues = lastOpen.childcount then
             let nodemetadatas = List.take lastOpen.metadatacount input
             printfn "%A" nodemetadatas
+
             let value =
                 if mode = 1 || lastOpen.childcount = 0 then
                     List.sum nodemetadatas
                 else
                     List.sum (List.map (fun m -> getChildvalue m lastOpen.childvalues) nodemetadatas)
-            printfn "Metadata %i, Childcount %i, Value %i, Children: %A" lastOpen.metadatacount lastOpen.childcount value lastOpen.childvalues
-            let ndonenodes = List.append donenodes (List.singleton (Node(lastOpen.metadatacount, lastOpen.childcount, value, lastOpen.childvalues)))
+
+            printfn
+                "Metadata %i, Childcount %i, Value %i, Children: %A"
+                lastOpen.metadatacount
+                lastOpen.childcount
+                value
+                lastOpen.childvalues
+
+            let ndonenodes =
+                List.append
+                    donenodes
+                    (List.singleton (Node(lastOpen.metadatacount, lastOpen.childcount, value, lastOpen.childvalues)))
 
             let newLast =
                 if (List.length openNodes) > 1 then
                     List.item (List.length openNodes - 2) openNodes
-                    |> fun n -> Node(n.childcount, n.metadatacount, value, List.append n.childvalues (List.singleton value))
+                    |> fun n ->
+                        Node(n.childcount, n.metadatacount, value, List.append n.childvalues (List.singleton value))
                     |> List.singleton
                 else
                     List.empty
@@ -83,14 +100,14 @@ let part2 input =
 [<EntryPoint>]
 let main argv =
     let input =
-        Util.readLines( __SOURCE_DIRECTORY__ + "\\input")
+        Util.readLines (__SOURCE_DIRECTORY__ + "\\input")
         |> Seq.head
-        |> (fun s -> s.Split [|' '|])
+        |> (fun s -> s.Split [| ' ' |])
         |> Seq.map int
         |> List.ofSeq
 
     input |> part2
-    
+
 
 
     0 // return an integer exit code
